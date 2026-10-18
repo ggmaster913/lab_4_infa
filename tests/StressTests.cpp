@@ -1,7 +1,10 @@
 #include <gtest/gtest.h>
 #include <stdexcept>
+#include <cstdio>
+#include <string>
 
 #include "Stream.h"
+#include "FileStream.h"
 #include "lab2/MutableArraySequence.h"
 #include "lab2/MutableListSequence.h"
 
@@ -9,6 +12,8 @@
 static int ArithmeticRule(const Sequence<int>* last) { return 2 * last->Get(1) - last->Get(0); }
 static long long SquareLong(const int& x) { return static_cast<long long>(x) * x; }
 static long long SumLong(const long long& acc, const long long& x) { return acc + x; }
+static int ParseInt(const std::string& line) { return std::stoi(line); }
+static std::string IntToText(const int& x) { return std::to_string(x); }
 
 // --- stress tests (millions of elements) ---
 
@@ -70,4 +75,26 @@ TEST(StressTest, MillionStreamWrite) {
     EXPECT_EQ(target.GetLength(), 1000000);
     EXPECT_EQ(target.GetFirst(), 0);
     EXPECT_EQ(target.GetLast(), 999999);
+}
+
+// миллион чисел в файл и обратно через файловые потоки
+TEST(StressTest, MillionFileWriteRead) {
+    const char* fileName = "lab4_stress_test.txt";
+    FileWriteStream<int> writer(fileName, IntToText);
+    writer.Open();
+    for (int i = 0; i < 1000000; ++i) {
+        writer.Write(i);
+    }
+    writer.Close();
+
+    FileReadStream<int> reader(fileName, ParseInt);
+    reader.Open();
+    long long sum = 0;
+    while (!reader.IsEndOfStream()) {
+        sum += reader.Read();
+    }
+    EXPECT_EQ(reader.GetPosition(), 1000000);
+    EXPECT_EQ(sum, 499999500000LL);
+    reader.Close();
+    std::remove(fileName);
 }

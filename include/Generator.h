@@ -13,9 +13,9 @@ public:
     virtual ~IGenerator() = default;
     virtual T GetNext() = 0;
     virtual bool HasNext() const = 0;
-    // новый такой же генератор, но с начала. удаляет его тот, кто вызвал
+    // копия с начала, удаляет вызвавший
     virtual IGenerator<T>* CloneFromStart() const = 0;
-    // пишется один раз тут, у всех наследников работает через их HasNext и GetNext
+    // один раз для всех наследников
     Option<T> TryGetNext() {
         if (HasNext()) return Option<T>(GetNext());
         return Option<T>();
@@ -28,8 +28,7 @@ class ArrayGenerator : public IGenerator<T> {
     int position;
 public:
     explicit ArrayGenerator(const DynamicArray<T>& source) : items(source), position(0) {}
-    // items(0) тк у DynamicArray нет конструктора без аргументов,
-    // а нормальный размер узнаем только после проверки на nullptr
+    // items(0) тк размер узнаем после проверки на nullptr
     explicit ArrayGenerator(const Sequence<T>* source) : items(0), position(0){
         if (source == nullptr) throw std::invalid_argument("Неверный указатель");
         items.Resize(source->GetLength());
@@ -55,7 +54,7 @@ class RuleGenerator : public IGenerator<T> {
     T (*rule)(const Sequence<T>*);
     MutableArraySequence<T> initialTerms; // начальные члены 
     MutableArraySequence<T> window; // последние элементы
-    int position; // нужен только пока отдаём начальные члены
+    int position; // только для начальных членов
 public:
     // initialTerms, window можно не писать
     // тк есть конструкторы по умолч в отличии от дайнамик эррэй 
@@ -76,9 +75,9 @@ public:
         if (position < initialTerms.GetLength()) {
             return initialTerms.Get(position++);
         } 
-        // дальше считаем по правилу, оно видит только последние k эл (окно)
+        // считаем по правилу от последних k эл
         T next = rule(&window);
-        // сдвигаем окно влево: самый старый эл выпадает, новый встаёт в конец
+        // сдвигаем окно, старый выпадает, новый в конец
         for (int i = 0; i < window.GetLength() - 1; i++) {
             window[i] = window[i+1];
         }

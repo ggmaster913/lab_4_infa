@@ -21,20 +21,20 @@ public:
     LazySequence(const T* items, int count) :
         generator(new ArrayGenerator<T>(DynamicArray<T>(items, count))), cache(0), materializedCount(0), length(Ordinal(count)) {}
 
-    // длину можно считать прямо в списке: generator объявлен раньше и уже проверил nullptr
+    // generator объявлен раньше и уже проверил nullptr
     explicit LazySequence(const Sequence<T>* sequence) :
         generator(new ArrayGenerator<T>(sequence)), cache(0), materializedCount(0), length(Ordinal(sequence->GetLength())) {}
 
     LazySequence(T (*rule)(const Sequence<T>*), const Sequence<T>* initial) :
         generator(new RuleGenerator<T>(rule, initial)), cache(0), materializedCount(0), length(Ordinal::Omega()) {}
 
-    // забирает генератор себе и удалит его в деструкторе, передавший его больше не трогает
+    // генератор теперь наш, удалим в деструкторе
     LazySequence(IGenerator<T>* generator, const Ordinal& length) :
         generator(generator), cache(0), materializedCount(0), length(length) {
         if (generator == nullptr) throw std::invalid_argument("нулевой указатель");
     }
 
-    // кэш не копируем: новый генератор стоит в начале, и кэш с ним бы разошёлся
+    // кэш не копируем, тк генератор с начала
     LazySequence(const LazySequence<T>& other) :
         generator(other.generator->CloneFromStart()), cache(0), materializedCount(0), length(other.length) {}
 
@@ -54,8 +54,7 @@ public:
         if (index < 0) throw std::out_of_range("Индекс не может быть меньше 0");
         if (Ordinal(index) >= length) throw std::out_of_range("индекс слишком большой"); //оборачиваем индекс в ординал чтобы можно было сравнить
         while (materializedCount <= index) {
-            // растим кэш вдвое, а не на 1, иначе на миллионе эл будет n^2 копирований.
-            // решает LazySequence, DynamicArray::Resize меняет размер ровно до запрошенного
+            // растим вдвое, иначе n^2 копирований
             if (materializedCount == cache.GetSize()) {
                 if (materializedCount == 0) cache.Resize(1);
                 else cache.Resize(cache.GetSize() * 2);
@@ -66,7 +65,7 @@ public:
         return cache.Get(index);
     }
 
-    // к ω и дальше обратиться нельзя: перечисление дойдёт туда только в бесконечности
+    // к ω и дальше нельзя, перечисление туда не дойдёт
     T Get(const Ordinal& index) {
         if (index.IsFinite()) return Get(index.GetFinitePart());
         throw std::out_of_range("невозможно получить бесконечный элемент");
@@ -74,7 +73,7 @@ public:
 
     LazySequence<T>& operator=(const LazySequence<T>& other) {
         if (this == &other) return *this;
-        // сначала новый, потом удаляем старый: если клон кинет исключение, объект останется целым
+        // сначала клон, потом delete, чтоб при ошибке объект остался целым
         IGenerator<T>* newGenerator = other.generator->CloneFromStart();
         delete generator;
         generator = newGenerator;
@@ -91,7 +90,7 @@ public:
 
     T GetLast() {
         if (length == Ordinal()) throw std::out_of_range("последовательность пустая");
-        // у ω нет предыдущего, поэтому и последнего эл нет
+        // у ω нет предыдущего => нет последнего
         if (!length.IsFinite()) throw std::out_of_range("у бесконечной последовательности нет последнего элемента");
         return Get(length.GetFinitePart() - 1);
     }
@@ -104,12 +103,12 @@ public:
 
     LazySequence<T>* Append(const T& item) const {
         LazySequence<T> single(&item, 1); // &item - адрес одного элемента
-        return Concat(&single); // this ++ [item]. single потом удалится, но Concat уже скопировал его генератор
+        return Concat(&single); // this ++ [item], генератор single уже скопирован
     }
 
     LazySequence<T>* Prepend(const T& item) const {
         LazySequence<T> single(&item, 1);
-        return single.Concat(this); // [item] ++ this, у бесконечной длина остаётся ω
+        return single.Concat(this); // [item] ++ this
     }
 
     LazySequence<T>* GetSubSequence(int startIndex, int endIndex) const {
@@ -121,14 +120,19 @@ public:
     }
 
     LazySequence<T>* InsertAt(const T& item, int index) const {
+        LazySequence<T> single(&item, 1);
+        return InsertAt(&single, index);
+    }
+
+    LazySequence<T>* InsertAt(const LazySequence<T>* other, int index) const {
+        if (other == nullptr) throw std::invalid_argument("указатель не может быть nullptr");
         if (index < 0 || Ordinal(index) >= length) throw std::out_of_range("некорректный индекс");
-        // начало ++ [item] ++ хвост. первые index эл посчитаются дважды: для начала и для пропуска в хвосте
+        // начало ++ other ++ хвост
         IGenerator<T>* first = new TakeGenerator<T>(generator->CloneFromStart(), index);
-        IGenerator<T>* single = new ArrayGenerator<T>(DynamicArray<T>(&item, 1));
         IGenerator<T>* second = new SkipGenerator<T>(generator->CloneFromStart(), index);
-        IGenerator<T>* tempGen = new ConcatGenerator<T>(new ConcatGenerator<T>(first, single), second);
-        // индекс конечный -> вставка всегда до ω, поэтому длина как у Prepend: 1 + length
-        return new LazySequence<T>(tempGen, Ordinal(1) + length);
+        IGenerator<T>* tempGen = new ConcatGenerator<T>(new ConcatGenerator<T>(first, other->generator->CloneFromStart()), second);
+        Ordinal rest = length.IsFinite() ? Ordinal(length.GetFinitePart() - index) : length; // у бесконечной хвост той же длины
+        return new LazySequence<T>(tempGen, Ordinal(index) + other->length + rest);
     }
 
     template<typename T2>
@@ -140,8 +144,7 @@ public:
 
     LazySequence<T>* Where(bool (*predicate)(const T&)) const {
         if (predicate == nullptr) throw std::invalid_argument("указатель на функцию не может быть nullptr");
-        // у бесконечной сколько подходящих заранее не узнать, считаем ω.
-        // у конечной считаем точно по копии генератора, иначе GetLength и GetLast бы врали
+        // у бесконечной кол-во подходящих не узнать, у конечной считаем точно
         Ordinal resultLength;
         if (!length.IsFinite()) {
             resultLength = Ordinal::Omega();

@@ -4,10 +4,13 @@
 #include <chrono>
 #include <limits>
 #include <cstdlib>
+#include <cstdio>
+#include <string>
 
 #include "LazySequence.h"
 #include "LazyAlgebra.h"
 #include "Stream.h"
+#include "FileStream.h"
 #include "lab2/MutableArraySequence.h"
 #include "lab2/MutableListSequence.h"
 
@@ -25,7 +28,7 @@ void FreeAllSlots() {
 
 // --- ввод и вывод ---
 
-// читает целое число нужного типа, при неверном вводе спрашивает снова
+// читает число, при ошибке спрашивает снова
 template<typename T>
 T ReadNumber(const char* prompt) {
     while (true) {
@@ -43,11 +46,22 @@ T ReadNumber(const char* prompt) {
     }
 }
 
+std::string ReadWord(const char* prompt) {
+    std::cout << prompt;
+    std::string word;
+    if (!(std::cin >> word)) {
+        std::cout << "\nКонец ввода.\n";
+        FreeAllSlots();
+        std::exit(0);
+    }
+    return word;
+}
+
 const char* YesNo(bool value) {
     return value ? "да" : "нет";
 }
 
-// печатает ординал вида ω·a + b
+// печатает ω·a + b
 void PrintOrdinal(const Ordinal& value) {
     if (value.GetOmegaCount() == 0) {
         std::cout << value.GetFinitePart();
@@ -58,7 +72,7 @@ void PrintOrdinal(const Ordinal& value) {
     if (value.GetFinitePart() > 0) std::cout << "+" << value.GetFinitePart();
 }
 
-// длина, первые count элементов (у бесконечной дальше «...») и сколько посчитано в кэше
+// длина, первые count эл и сколько посчитано
 void PrintSequence(LazySequence<long long>* seq, int count) {
     Ordinal length = seq->GetLength();
     int shown = count;
@@ -83,6 +97,8 @@ long long DoubleRule(const Sequence<long long>* last) { return 2 * last->Get(0);
 long long Square(const long long& x) { return x * x; }
 bool IsEven(const long long& x) { return x % 2 == 0; }
 long long Sum(const long long& accumulator, const long long& x) { return accumulator + x; }
+long long TextToNumber(const std::string& line) { return std::stoll(line); }
+std::string NumberToText(const long long& x) { return std::to_string(x); }
 
 // --- работа со слотами ---
 
@@ -103,7 +119,7 @@ LazySequence<long long>* ChooseSlot(const char* prompt) {
     return slots[index];
 }
 
-// кладёт новую последовательность в свободный слот; если мест нет — удаляет её
+// в свободный слот, если мест нет - удаляем
 void Store(LazySequence<long long>* seq) {
     for (int i = 0; i < SLOT_COUNT; i++) {
         if (slots[i] == nullptr) {
@@ -186,7 +202,8 @@ void MenuOperations() {
     PrintSequence(seq, 8);
     std::cout << "1. Get(i)   2. Get по ординалу   3. GetFirst и GetLast   4. Reduce (сумма)\n"
                  "5. Append   6. Prepend   7. InsertAt   8. Concat со вторым слотом\n"
-                 "9. GetSubSequence   10. Map (x*x)   11. Where (чётные; у бесконечной без чётных зависнет)\n";
+                 "9. GetSubSequence   10. Map (x*x)   11. Where (чётные; у бесконечной без чётных зависнет)\n"
+                 "12. InsertAt последовательности из другого слота\n";
     int choice = ReadNumber<int>("Операция: ");
 
     if (choice == 1) {
@@ -222,6 +239,10 @@ void MenuOperations() {
         Store(seq->Map(Square));
     } else if (choice == 11) {
         Store(seq->Where(IsEven));
+    } else if (choice == 12) {
+        LazySequence<long long>* other = ChooseSlot("Какой слот вставить: ");
+        int index = ReadNumber<int>("Индекс: ");
+        Store(seq->InsertAt(other, index));
     } else {
         std::cout << "Нет такого пункта.\n";
     }
@@ -248,7 +269,8 @@ void MenuLaws() {
 }
 
 void MenuStreams() {
-    std::cout << "1. прочитать из слота   2. записать с клавиатуры в список\n";
+    std::cout << "1. прочитать из слота   2. записать с клавиатуры в список\n"
+                 "3. записать слот в файл   4. прочитать файл в новый слот\n";
     int choice = ReadNumber<int>("Выбор: ");
 
     if (choice == 1) {
@@ -278,6 +300,27 @@ void MenuStreams() {
         std::cout << "Список: [";
         for (int i = 0; i < target.GetLength(); i++) std::cout << (i > 0 ? ", " : "") << target.Get(i);
         std::cout << "]\n";
+    } else if (choice == 3) {
+        LazyReadStream<long long> reader(ChooseSlot("Слот: "));
+        int count = ReadNumber<int>("Сколько эл записать: ");
+        FileWriteStream<long long> writer(ReadWord("Имя файла: "), NumberToText);
+        reader.Open();
+        writer.Open();
+        for (int i = 0; i < count && !reader.IsEndOfStream(); i++) writer.Write(reader.Read());
+        writer.Close();
+        std::cout << "Записано эл: " << writer.GetPosition() << "\n";
+    } else if (choice == 4) {
+        FileReadStream<long long> reader(ReadWord("Имя файла: "), TextToNumber);
+        reader.Open();
+        DynamicArray<long long> items(0);
+        int count = 0;
+        while (!reader.IsEndOfStream()) {
+            if (count == items.GetSize()) items.Resize(count == 0 ? 1 : count * 2); // вдвое, файл может быть большим
+            items.Set(count, reader.Read());
+            count++;
+        }
+        items.Resize(count);
+        Store(new LazySequence<long long>(new ArrayGenerator<long long>(items), Ordinal(count)));
     } else {
         std::cout << "Нет такого пункта.\n";
     }
@@ -292,7 +335,7 @@ void MenuAuto() {
 
     std::mt19937_64 random(std::random_device{}());
     std::uniform_int_distribution<int> lengthDistribution(0, maxLength);
-    int count = 3 * maxLength; // хватает, чтоб сравнить все эл склейки трёх последовательностей
+    int count = 3 * maxLength; // хватит на все эл склейки трёх
     for (int run = 1; run <= runs; run++) {
         LazySequence<long long>* a = RandomSequence(lengthDistribution(random), low, high, random);
         LazySequence<long long>* b = RandomSequence(lengthDistribution(random), low, high, random);
@@ -324,7 +367,7 @@ void MenuAuto() {
 }
 
 void MenuStress() {
-    // N не больше 3 млн, иначе сумма квадратов не влезет в long long
+    // больше 3 млн сумма квадратов не влезет в long long
     int n = ReadNumber<int>("N (1..3000000, например 1000000): ");
     if (n <= 0 || n > 3000000) throw std::invalid_argument("N должно быть от 1 до 3000000");
     long long start[] = {0, 1};
@@ -357,6 +400,20 @@ void MenuStress() {
     begin = std::chrono::steady_clock::now();
     for (int i = 0; i < n; i++) writer.Write(i);
     std::cout << "N раз Write в список: длина = " << target.GetLength() << ", " << MillisecondsSince(begin) << " мс\n";
+
+    const char* fileName = "lab4_stress.txt";
+    begin = std::chrono::steady_clock::now();
+    FileWriteStream<long long> fileWriter(fileName, NumberToText);
+    fileWriter.Open();
+    for (int i = 0; i < n; i++) fileWriter.Write(i);
+    fileWriter.Close();
+    FileReadStream<long long> fileReader(fileName, TextToNumber);
+    fileReader.Open();
+    long long fileSum = 0;
+    while (!fileReader.IsEndOfStream()) fileSum += fileReader.Read();
+    fileReader.Close();
+    std::remove(fileName);
+    std::cout << "N в файл и обратно: сумма = " << fileSum << ", " << MillisecondsSince(begin) << " мс\n";
 }
 
 void MenuDelete() {

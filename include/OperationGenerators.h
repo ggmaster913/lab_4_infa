@@ -10,7 +10,7 @@ class ConcatGenerator : public IGenerator<T> {
     IGenerator<T>* second;
 public: 
     ConcatGenerator(IGenerator<T>* first, IGenerator<T>* second) : first(first), second(second) {
-        // генераторы уже наши, поэтому при ошибке удаляем их сами, иначе утечка. delete nullptr безопасен
+        // генераторы уже наши, удаляем чтоб не утекли
         if (first == nullptr || second == nullptr) {
             delete this->first;
             delete this->second;
@@ -45,10 +45,9 @@ template<typename T>
 class SkipGenerator : public IGenerator<T> {
     IGenerator<T>* source;
     int skipCount;
-    // mutable тк HasNext() const, а чтоб на него ответить, надо сначала пропустить эл.
-    // снаружи генератор от этого не меняется, меняется только внутреннее состояние
+    // mutable тк пропуск делается в const HasNext()
     mutable bool skipped;
-    // пропускаем при первом обращении, а не в конструкторе, чтоб было лениво
+    // пропуск при первом обращении, чтоб было лениво
     void SkipIfNeeded() const {
         if (skipped == true) return;
         for (int i = 0; i < skipCount; i++) {
@@ -149,8 +148,7 @@ template<typename T>
 class WhereGenerator : public IGenerator<T> {
     IGenerator<T>* source;
     bool (*predicate)(const T&);
-    // найденный, но ещё не отданный эл. без него HasNext() пришлось бы выкинуть то, что нашёл.
-    // mutable по той же причине что в SkipGenerator: искать приходится в const HasNext()
+    // найденный, но ещё не отданный эл (mutable тк ищем в const HasNext())
     mutable Option<T> buffer;
     void FindNext() const {
         if (buffer.HasValue()) return;
@@ -184,7 +182,7 @@ public:
         FindNext();
         if (!buffer.HasValue()) throw std::out_of_range("элементы кончились");
         T result = buffer.GetValue();
-        buffer = Option<T>(); // опустошаем, чтоб в след раз искать дальше
+        buffer = Option<T>(); // чтоб в след раз искать дальше
         return result;
     }
     IGenerator<T>* CloneFromStart() const override {

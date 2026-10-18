@@ -6,24 +6,28 @@
 #include "LazySequence.h"
 #include "lab2/Sequence.h"
 
-// поток не владеет источником, поэтому источник должен жить дольше потока
+// источником не владеет, источник должен жить дольше потока
 template<typename T>
 class ReadOnlyStream {
     int position;
     bool isOpen;
 protected:
-    // чем потоки отличаются, реализуют наследники (как Instance и Clone в ArraySequence)
+    // реализуют наследники (как Instance в ArraySequence)
     virtual bool HasElementAt(int index) const = 0;
     virtual T ReadAt(int index) = 0;
-public: 
+    virtual void OnOpen() {} // файлу тут надо открыться, остальным ничего
+    virtual void OnClose() {}
+public:
     ReadOnlyStream() : position(0), isOpen(false) {}
     virtual ~ReadOnlyStream() = default;
 
     void Open() {
+        OnOpen();
         isOpen = true;
         position = 0;
     }
     void Close() {
+        OnClose();
         isOpen = false;
     }
     bool IsEndOfStream() const {
@@ -39,16 +43,17 @@ public:
     int GetPosition() const {
         return position;
     }
-    bool IsCanSeek() const {
+    virtual bool IsCanSeek() const {
         return true;
     }
     int Seek(int index) {
         if (!isOpen) throw std::out_of_range("поток закрыт");
+        if (!IsCanSeek()) throw std::out_of_range("поток не умеет Seek");
         if (index < 0 || !HasElementAt(index)) throw std::out_of_range("позиция недостижима");
         position = index;
-        return position; 
+        return position;
     }
-    bool IsCanGoBack() const {
+    virtual bool IsCanGoBack() const {
         return true;
     }
 };
@@ -74,7 +79,7 @@ class LazyReadStream : public ReadOnlyStream<T> {
     LazySequence<T>* source;
 protected:
     bool HasElementAt(int index) const override {
-        return Ordinal(index) < source->GetLength(); // у бесконечной всегда true, конец потока не наступит
+        return Ordinal(index) < source->GetLength(); // у бесконечной всегда true
     }
     T ReadAt(int index) override {
         return source->Get(index);
@@ -91,14 +96,18 @@ class WriteOnlyStream {
     bool isOpen;
 protected:
     virtual void WriteItem(const T& item) = 0;
+    virtual void OnOpen() {}
+    virtual void OnClose() {}
 public:
     WriteOnlyStream() : position(0), isOpen(false) {}
     virtual ~WriteOnlyStream() = default;
 
     void Open() {
-        isOpen = true; // позицию не сбрасываем: записанное никуда не делось
+        OnOpen();
+        isOpen = true; // позицию не сбрасываем, записанное не пропало
     }
     void Close() {
+        OnClose();
         isOpen = false;
     }
     int GetPosition() const {
@@ -107,7 +116,7 @@ public:
     int Write(const T& item) {
         if (!isOpen) throw std::out_of_range("поток закрыт");
         WriteItem(item);
-        position++; // после WriteItem, чтоб при ошибке записи счётчик не сдвинулся
+        position++; // после WriteItem, чтоб при ошибке не сдвинуть
         return position;
     }
 };
@@ -117,8 +126,7 @@ class SequenceWriteStream : public WriteOnlyStream<T> {
     Sequence<T>* target;
 protected:
     void WriteItem(const T& item) override {
-        // у иммутабл Append вернёт новый объект. подменить target нельзя, он не наш,
-        // поэтому удаляем копию и ругаемся, чтоб не было утечки
+        // иммутабл вернул новый объект, target не наш - удаляем копию и ругаемся
         Sequence<T>* result = target->Append(item);
         if (result != target) {
             delete result;

@@ -383,6 +383,47 @@ TEST(LazySequenceTest, InsertAt) {
     EXPECT_THROW(seq.InsertAt(99, -1), std::out_of_range);
 }
 
+// вставка целой последовательности: конечной в конечную, в бесконечную и бесконечной в конечную
+TEST(LazySequenceTest, InsertSequence) {
+    int raw[] = {7, 8, 9};
+    int rawInserted[] = {1, 2};
+    LazySequence<int> seq(raw, 3);
+    LazySequence<int> inserted(rawInserted, 2);
+
+    int start[] = {0, 1};
+    MutableArraySequence<int> initial(start, 2);
+    LazySequence<int> naturals(ArithmeticRule, &initial);
+
+    LazySequence<int>* finite = seq.InsertAt(&inserted, 1);
+    EXPECT_TRUE(finite->GetLength() == Ordinal(5));
+    int expected[] = {7, 1, 2, 8, 9};
+    for (int i = 0; i < 5; ++i) {
+        EXPECT_EQ(finite->Get(i), expected[i]);
+    }
+    delete finite;
+
+    // 2 + 2 + ω = ω
+    LazySequence<int>* intoInfinite = naturals.InsertAt(&inserted, 2);
+    EXPECT_TRUE(intoInfinite->GetLength() == Ordinal::Omega());
+    EXPECT_EQ(intoInfinite->Get(1), 1);
+    EXPECT_EQ(intoInfinite->Get(2), 1);
+    EXPECT_EQ(intoInfinite->Get(3), 2);
+    EXPECT_EQ(intoInfinite->Get(4), 2);
+    delete intoInfinite;
+
+    // 1 + ω + 2 = ω + 2, хвост {8, 9} перечислением не достать
+    LazySequence<int>* infiniteInside = seq.InsertAt(&naturals, 1);
+    EXPECT_TRUE(infiniteInside->GetLength() == Ordinal(1, 2));
+    EXPECT_EQ(infiniteInside->Get(0), 7);
+    EXPECT_EQ(infiniteInside->Get(1), 0);
+    EXPECT_EQ(infiniteInside->Get(5), 4);
+    delete infiniteInside;
+
+    EXPECT_THROW(seq.InsertAt(&inserted, 3), std::out_of_range);
+    const LazySequence<int>* nullSeq = nullptr;
+    EXPECT_THROW(seq.InsertAt(nullSeq, 1), std::invalid_argument);
+}
+
 // поэлементное преобразование через map с изменением типа данных
 TEST(LazySequenceTest, Map) {
     int raw[] = {3, 4, 5};

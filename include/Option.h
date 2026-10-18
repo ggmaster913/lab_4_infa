@@ -6,7 +6,7 @@
 template<typename T>
 class Option {
     bool hasValue;
-    T value; // есть и у пустой коробки, поэтому T нужен конструктор по умолч
+    T value; // есть и у пустой, поэтому T нужен конструктор по умолч
 public:
     Option() : hasValue(false), value() {}
     explicit Option(const T& value) : hasValue(true), value(value){}

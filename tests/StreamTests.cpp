@@ -1,7 +1,11 @@
 #include <gtest/gtest.h>
 #include <stdexcept>
+#include <cstdio>
+#include <fstream>
+#include <string>
 
 #include "Stream.h"
+#include "FileStream.h"
 #include "lab2/MutableArraySequence.h"
 #include "lab2/ImmutableArraySequence.h"
 #include "lab2/MutableListSequence.h"
@@ -10,6 +14,8 @@
 // функции-помощники
 static int ArithmeticRule(const Sequence<int>* last) { return 2 * last->Get(1) - last->Get(0); }
 static bool IsEven(const int& x) { return x % 2 == 0; }
+static int ParseInt(const std::string& line) { return std::stoi(line); }
+static std::string IntToText(const int& x) { return std::to_string(x); }
 
 // --- streams ---
 
@@ -189,4 +195,76 @@ TEST(StreamTest, ReadThenWrite) {
     }
 
     delete evens;
+}
+
+// запись в файл и чтение обратно, повторный Open читает с начала
+TEST(StreamTest, FileWriteThenRead) {
+    const char* fileName = "lab4_stream_test.txt";
+    FileWriteStream<int> writer(fileName, IntToText);
+    writer.Open();
+    for (int i = 1; i <= 5; ++i) {
+        EXPECT_EQ(writer.Write(i * 10), i);
+    }
+    writer.Close();
+
+    FileReadStream<int> reader(fileName, ParseInt);
+    EXPECT_FALSE(reader.IsCanSeek());
+    EXPECT_FALSE(reader.IsCanGoBack());
+
+    reader.Open();
+    for (int i = 1; i <= 5; ++i) {
+        EXPECT_EQ(reader.Read(), i * 10);
+    }
+    EXPECT_TRUE(reader.IsEndOfStream());
+    EXPECT_THROW(reader.Read(), std::out_of_range);
+    EXPECT_THROW(reader.Seek(0), std::out_of_range);
+
+    reader.Open();
+    EXPECT_EQ(reader.Read(), 10);
+    reader.Close();
+    std::remove(fileName);
+}
+
+// повторный Open потока записи дописывает в конец, а не стирает файл
+TEST(StreamTest, FileWriteReopenAppends) {
+    const char* fileName = "lab4_append_test.txt";
+    FileWriteStream<int> writer(fileName, IntToText);
+    writer.Open();
+    writer.Write(1);
+    writer.Close();
+    writer.Open();
+    writer.Write(2);
+    writer.Close();
+    EXPECT_EQ(writer.GetPosition(), 2);
+
+    FileReadStream<int> reader(fileName, ParseInt);
+    reader.Open();
+    EXPECT_EQ(reader.Read(), 1);
+    EXPECT_EQ(reader.Read(), 2);
+    EXPECT_TRUE(reader.IsEndOfStream());
+    reader.Close();
+    std::remove(fileName);
+}
+
+// ошибки файловых потоков: нет файла, пустые функции, строка не число
+TEST(StreamTest, FileErrors) {
+    FileReadStream<int> missing("lab4_no_such_file.txt", ParseInt);
+    EXPECT_THROW(missing.Open(), std::invalid_argument);
+    EXPECT_THROW(missing.Read(), std::out_of_range);
+
+    EXPECT_THROW(FileReadStream<int>("lab4_x.txt", nullptr), std::invalid_argument);
+    EXPECT_THROW(FileWriteStream<int>("lab4_x.txt", nullptr), std::invalid_argument);
+
+    const char* fileName = "lab4_bad_line_test.txt";
+    {
+        std::ofstream out(fileName);
+        out << "1\n\nabc\n3\n";
+    }
+    FileReadStream<int> reader(fileName, ParseInt);
+    reader.Open();
+    EXPECT_EQ(reader.Read(), 1); // пустая строка пропускается
+    EXPECT_THROW(reader.Read(), std::invalid_argument);
+    EXPECT_EQ(reader.GetPosition(), 1);
+    reader.Close();
+    std::remove(fileName);
 }
