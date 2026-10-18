@@ -9,7 +9,6 @@
 #include "LazyAlgebra.h"
 #include "Stream.h"
 #include "lab2/MutableArraySequence.h"
-#include "lab2/ImmutableArraySequence.h"
 #include "lab2/MutableListSequence.h"
 
 // --- слоты: меню владеет всеми последовательностями в них ---
@@ -95,7 +94,7 @@ void ShowSlots() {
         std::cout << "  [" << i << "] ";
         PrintSequence(slots[i], 8);
     }
-    if (empty) std::cout << "  слотов нет, создайте последовательность (пункт 2)\n";
+    if (empty) std::cout << "  слотов нет, создайте последовательность (пункт 1)\n";
 }
 
 LazySequence<long long>* ChooseSlot(const char* prompt) {
@@ -115,7 +114,7 @@ void Store(LazySequence<long long>* seq) {
         }
     }
     delete seq;
-    throw std::out_of_range("нет свободных слотов, удалите какой-нибудь (пункт 9)");
+    throw std::out_of_range("нет свободных слотов, удалите какой-нибудь (пункт 8)");
 }
 
 LazySequence<long long>* RandomSequence(int length, long long low, long long high, std::mt19937_64& random) {
@@ -126,24 +125,6 @@ LazySequence<long long>* RandomSequence(int length, long long low, long long hig
 }
 
 // --- пункты меню ---
-
-void MenuOrdinals() {
-    std::cout << "Ординал ω·a + b задаётся двумя числами a и b.\n";
-    int a = ReadNumber<int>("x: a = ");
-    int b = ReadNumber<int>("x: b = ");
-    Ordinal x(a, b);
-    a = ReadNumber<int>("y: a = ");
-    b = ReadNumber<int>("y: b = ");
-    Ordinal y(a, b);
-
-    std::cout << "x + y = "; PrintOrdinal(x + y);
-    std::cout << ",  y + x = "; PrintOrdinal(y + x);
-    std::cout << "\nx < y: " << YesNo(x < y) << ",  x == y: " << YesNo(x == y) << ",  x > y: " << YesNo(x > y) << "\n";
-    std::cout << "Для сравнения: 1 + ω = "; PrintOrdinal(Ordinal(1) + Ordinal::Omega());
-    std::cout << ",  ω + 1 = "; PrintOrdinal(Ordinal::Omega() + Ordinal(1));
-    std::cout << ",  (ω+5) + (ω+3) = "; PrintOrdinal(Ordinal(1, 5) + Ordinal(1, 3));
-    std::cout << "\n";
-}
 
 void MenuCreate() {
     std::cout << "1. ввести с клавиатуры   2. случайные числа   3. арифметическая прогрессия (бесконечная)\n"
@@ -267,7 +248,7 @@ void MenuLaws() {
 }
 
 void MenuStreams() {
-    std::cout << "1. прочитать из слота   2. записать с клавиатуры в список   3. записать в неизменяемую\n";
+    std::cout << "1. прочитать из слота   2. записать с клавиатуры в список\n";
     int choice = ReadNumber<int>("Выбор: ");
 
     if (choice == 1) {
@@ -297,12 +278,6 @@ void MenuStreams() {
         std::cout << "Список: [";
         for (int i = 0; i < target.GetLength(); i++) std::cout << (i > 0 ? ", " : "") << target.Get(i);
         std::cout << "]\n";
-    } else if (choice == 3) {
-        ImmutableArraySequence<long long> target;
-        SequenceWriteStream<long long> stream(&target);
-        stream.Open();
-        std::cout << "Write(42) в ImmutableArraySequence...\n";
-        stream.Write(42);
     } else {
         std::cout << "Нет такого пункта.\n";
     }
@@ -395,29 +370,27 @@ int main() {
     while (true) {
         std::cout << "\n=== ЛР-4: ленивые списки и ординалы ===\n";
         ShowSlots();
-        std::cout << "1. Ординалы\n"
-                     "2. Создать последовательность\n"
-                     "3. Показать последовательность\n"
-                     "4. Операции над последовательностью\n"
-                     "5. Законы моноида\n"
-                     "6. Потоки\n"
-                     "7. Автоматический прогон законов\n"
-                     "8. Предельные значения (миллионы элементов)\n"
-                     "9. Удалить последовательность\n"
+        std::cout << "1. Создать последовательность\n"
+                     "2. Показать последовательность\n"
+                     "3. Операции над последовательностью\n"
+                     "4. Законы моноида\n"
+                     "5. Потоки\n"
+                     "6. Автоматический прогон законов\n"
+                     "7. Предельные значения (миллионы элементов)\n"
+                     "8. Удалить последовательность\n"
                      "0. Выход\n";
         int choice = ReadNumber<int>("Выбор: ");
         if (choice == 0) break;
         try {
             switch (choice) {
-                case 1: MenuOrdinals(); break;
-                case 2: MenuCreate(); break;
-                case 3: MenuShow(); break;
-                case 4: MenuOperations(); break;
-                case 5: MenuLaws(); break;
-                case 6: MenuStreams(); break;
-                case 7: MenuAuto(); break;
-                case 8: MenuStress(); break;
-                case 9: MenuDelete(); break;
+                case 1: MenuCreate(); break;
+                case 2: MenuShow(); break;
+                case 3: MenuOperations(); break;
+                case 4: MenuLaws(); break;
+                case 5: MenuStreams(); break;
+                case 6: MenuAuto(); break;
+                case 7: MenuStress(); break;
+                case 8: MenuDelete(); break;
                 default: std::cout << "Нет такого пункта.\n";
             }
         } catch (const std::exception& e) {
