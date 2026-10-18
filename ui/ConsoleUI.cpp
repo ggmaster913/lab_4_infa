@@ -292,7 +292,7 @@ void MenuAuto() {
 
     std::mt19937_64 random(std::random_device{}());
     std::uniform_int_distribution<int> lengthDistribution(0, maxLength);
-    int count = 3 * maxLength;
+    int count = 3 * maxLength; // хватает, чтоб сравнить все эл склейки трёх последовательностей
     for (int run = 1; run <= runs; run++) {
         LazySequence<long long>* a = RandomSequence(lengthDistribution(random), low, high, random);
         LazySequence<long long>* b = RandomSequence(lengthDistribution(random), low, high, random);
@@ -324,6 +324,7 @@ void MenuAuto() {
 }
 
 void MenuStress() {
+    // N не больше 3 млн, иначе сумма квадратов не влезет в long long
     int n = ReadNumber<int>("N (1..3000000, например 1000000): ");
     if (n <= 0 || n > 3000000) throw std::invalid_argument("N должно быть от 1 до 3000000");
     long long start[] = {0, 1};

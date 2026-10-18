@@ -13,6 +13,7 @@ static int Square(const int& x) { return x * x; }
 static bool IsEven(const int& x) { return x % 2 == 0; }
 static int Sum(const int& acc, const int& x) { return acc + x; }
 static double Half(const int& x) { return x / 2.0; }
+static int TribonacciRule(const Sequence<int>* last) { return last->Get(0) + last->Get(1) + last->Get(2); }
 
 // --- ordinal ---
 
@@ -594,4 +595,56 @@ TEST(AlgebraTest, LengthAddition) {
     delete natPlus7;
     delete sevenPlusNat;
     delete natPlusNat;
+}
+
+// --- option and generators ---
+
+// пустая и заполненная коробка, ноль внутри не путается с пустотой
+TEST(OptionTest, EmptyAndFull) {
+    Option<int> empty;
+    Option<int> full(7);
+    Option<int> zero(0);
+
+    EXPECT_FALSE(empty.HasValue());
+    EXPECT_THROW(empty.GetValue(), std::out_of_range);
+    EXPECT_TRUE(full.HasValue());
+    EXPECT_EQ(full.GetValue(), 7);
+    EXPECT_TRUE(zero.HasValue());
+    EXPECT_EQ(zero.GetValue(), 0);
+}
+
+// TryGetNext в конце генератора и копия генератора с начала
+TEST(GeneratorTest, TryGetNextAndCloneFromStart) {
+    int raw[] = {7, 8, 9};
+    IGenerator<int>* gen = new ArrayGenerator<int>(DynamicArray<int>(raw, 3));
+    EXPECT_EQ(gen->GetNext(), 7);
+    EXPECT_EQ(gen->GetNext(), 8);
+
+    IGenerator<int>* copy = gen->CloneFromStart();
+    EXPECT_EQ(copy->GetNext(), 7);
+
+    EXPECT_EQ(gen->TryGetNext().GetValue(), 9);
+    EXPECT_FALSE(gen->TryGetNext().HasValue());
+    EXPECT_FALSE(gen->HasNext());
+    EXPECT_THROW(gen->GetNext(), std::out_of_range);
+
+    delete copy;
+    delete gen;
+}
+
+// сдвиг окна у правила с тремя начальными членами
+TEST(GeneratorTest, RuleGeneratorWindow) {
+    int start[] = {0, 0, 1};
+    MutableArraySequence<int> initial(start, 3);
+    RuleGenerator<int> gen(TribonacciRule, &initial);
+
+    int expected[] = {0, 0, 1, 1, 2, 4, 7, 13, 24, 44};
+    for (int i = 0; i < 10; ++i) {
+        EXPECT_EQ(gen.GetNext(), expected[i]);
+    }
+
+    IGenerator<int>* copy = gen.CloneFromStart();
+    EXPECT_EQ(copy->GetNext(), 0);
+    EXPECT_TRUE(copy->HasNext());
+    delete copy;
 }

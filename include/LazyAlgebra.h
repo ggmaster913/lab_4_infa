@@ -8,10 +8,12 @@
 template<typename T>
 bool AreEqual(LazySequence<T>* first, LazySequence<T>* second, int count) {
     if (first == nullptr || second == nullptr ||  count < 0) throw std::invalid_argument("неправильные аргументы на входе AreEqual");
+    // бесконечные целиком не сравнить, поэтому смотрим длину и первые count эл
     int limit = count;
     if (first->GetLength().IsFinite() && first->GetLength().GetFinitePart() < limit) {
         limit = first->GetLength().GetFinitePart();
     }
+    // naturals и naturals + {42} совпадают на любом префиксе, отличаются только длиной
     if (first->GetLength() != second->GetLength()) return false;
     for (int i = 0; i < limit; i++) {
         if (!(first->Get(i) == second->Get(i))) return false;

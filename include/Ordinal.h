@@ -3,6 +3,7 @@
 
 #include <stdexcept>
 
+// ординал вида ω*omegaCount + finitePart
 class Ordinal {
 private:
     int omegaCount;
@@ -35,7 +36,9 @@ public:
     }
 
     Ordinal operator+(const Ordinal& other) const {
+        // справа есть ω -> наш конечный хвост поглощается: 5 + ω = ω
         if (other.omegaCount > 0) return Ordinal(other.omegaCount + omegaCount, other.finitePart);
+        // справа конечное -> хвосты просто складываются: ω + 5
         return Ordinal(omegaCount, other.finitePart + finitePart);
     }
 
@@ -76,6 +79,4 @@ public:
     }
 };
 
-
-
-#endif 
+#endif

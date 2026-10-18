@@ -6,11 +6,13 @@
 #include "LazySequence.h"
 #include "lab2/Sequence.h"
 
+// поток не владеет источником, поэтому источник должен жить дольше потока
 template<typename T>
 class ReadOnlyStream {
     int position;
     bool isOpen;
 protected:
+    // чем потоки отличаются, реализуют наследники (как Instance и Clone в ArraySequence)
     virtual bool HasElementAt(int index) const = 0;
     virtual T ReadAt(int index) = 0;
 public: 
@@ -72,7 +74,7 @@ class LazyReadStream : public ReadOnlyStream<T> {
     LazySequence<T>* source;
 protected:
     bool HasElementAt(int index) const override {
-        return Ordinal(index) < source->GetLength();
+        return Ordinal(index) < source->GetLength(); // у бесконечной всегда true, конец потока не наступит
     }
     T ReadAt(int index) override {
         return source->Get(index);
@@ -94,10 +96,10 @@ public:
     virtual ~WriteOnlyStream() = default;
 
     void Open() {
-        isOpen = true;
+        isOpen = true; // позицию не сбрасываем: записанное никуда не делось
     }
     void Close() {
-         isOpen = false;
+        isOpen = false;
     }
     int GetPosition() const {
         return position;
@@ -105,7 +107,7 @@ public:
     int Write(const T& item) {
         if (!isOpen) throw std::out_of_range("поток закрыт");
         WriteItem(item);
-        position++;
+        position++; // после WriteItem, чтоб при ошибке записи счётчик не сдвинулся
         return position;
     }
 };
@@ -115,6 +117,8 @@ class SequenceWriteStream : public WriteOnlyStream<T> {
     Sequence<T>* target;
 protected:
     void WriteItem(const T& item) override {
+        // у иммутабл Append вернёт новый объект. подменить target нельзя, он не наш,
+        // поэтому удаляем копию и ругаемся, чтоб не было утечки
         Sequence<T>* result = target->Append(item);
         if (result != target) {
             delete result;
