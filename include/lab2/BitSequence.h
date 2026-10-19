@@ -10,6 +10,7 @@ public:
     using MutableArraySequence<Bit>::MutableArraySequence;
 
     BitSequence(const bool* values, int count){
+        if (count < 0 || (count > 0 && values == nullptr)) throw std::invalid_argument("неправильные данные для битовой последовательности");
         for (int i = 0; i < count; i++){
             this->Append(Bit(values[i]));
         }

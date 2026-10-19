@@ -18,7 +18,7 @@ public:
 
     DynamicArray(const T* items, int count) : size(count){
         if (count < 0 || (count > 0 && items == nullptr)){
-            throw std::invalid_argument("не правильные данные для копирования эл массива");
+            throw std::invalid_argument("неправильные данные для копирования элементов массива");
         }
         data = new T[count];
         for (int i = 0; i < count; i++){
@@ -38,7 +38,7 @@ public:
     }
 
     const T& Get(int index) const override { // чтоб нельзя было сделать arr.Get(5) = 8;
-        if (index < 0 || index >= size) throw std::out_of_range("индек не верный");
+        if (index < 0 || index >= size) throw std::out_of_range("неверный индекс");
         return data[index];
     }
 
@@ -47,7 +47,7 @@ public:
     }
 
     void Set(int index, const T& value){
-        if (index < 0 || index >= size) throw std::out_of_range("индекc не верный");
+        if (index < 0 || index >= size) throw std::out_of_range("неверный индекс");
         data[index] = value;
     }
 

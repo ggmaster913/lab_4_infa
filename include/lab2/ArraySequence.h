@@ -114,10 +114,13 @@ public:
     }
     
     ArraySequence<T>* InsertAt(const T& item, int index) override {
+        // проверяем до Instance(), иначе у иммутабл копия утечёт при исключении
+        if (index < 0 || index >= items->GetSize()) throw std::out_of_range("неправильный индекс");
         return this->Instance()->InsertAtInternal(item, index);
     } 
     
     ArraySequence<T>* Concat(const Sequence<T>* list) override {
+        if (list == nullptr) throw std::invalid_argument("неправильный аргумент"); // до Instance(), как в InsertAt
         return this->Instance()->ConcatInternal(list);
     }
 

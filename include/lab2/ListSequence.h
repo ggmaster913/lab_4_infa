@@ -100,10 +100,13 @@ public:
     }
 
     ListSequence<T>* InsertAt(const T& item, int index) override {
+        // проверяем до Instance(), иначе у иммутабл копия утечёт при исключении
+        if (index < 0 || index >= items->GetLength()) throw std::out_of_range("неправильный индекс");
         return this->Instance()->InsertAtInternal(item, index);
     }
 
     ListSequence<T>* Concat(const Sequence<T>* other) override{
+        if (other == nullptr) throw std::invalid_argument("неправильный аргумент"); // до Instance(), как в InsertAt
         return this->Instance()->ConcatInternal(other);
     }
 
