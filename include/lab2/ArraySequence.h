@@ -12,9 +12,10 @@ protected:
     DynamicArray<T>* items;
 
     virtual ArraySequence<T>* Clone() const = 0;
-    virtual ArraySequence<T>* Instance() = 0;
+    virtual ArraySequence<T>* Instance() = 0; // мутабл вернёт this, иммутабл копию
     virtual ArraySequence<T>* CreateInstance(const DynamicArray<T>& subArray) const = 0;
 
+    // Internal меняют сам объект, а какой объект менять решает Instance()
     ArraySequence<T>* AppendInternal(const T& item ) {
         items->Resize(items->GetSize() + 1);
         items->Set(items->GetSize() - 1, item);
@@ -136,7 +137,7 @@ public:
     }
 
     Sequence<T>* Where(bool (*predicate)(const T&)) const override {
-        int length = 0;
+        int length = 0; // сначала считаем длину, чтоб не растить массив по одному
         for (int i = 0; i < items->GetSize(); i++) {
             if (predicate(items->Get(i))) length++;
         }

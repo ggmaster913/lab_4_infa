@@ -33,6 +33,7 @@ public:
         return this->Get(index);
     }
 
+    // тело в MutableArraySequence.h, тк тут MutableArraySequence ещё не известен
     template<typename T2>
     Sequence<T2>* Map(T2 (*f)(const T&)) const;
 };

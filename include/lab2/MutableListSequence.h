@@ -20,7 +20,7 @@ protected:
 
 public:
     using ListSequence<T>::ListSequence; //перетаскиваем конструкторы из ArraySequence только теперь для MutableArraySequence 
-    using Sequence<T>::operator[];
+    using Sequence<T>::operator[]; // иначе T& operator[] спрятал бы const версию из Sequence
     
     T& operator[](int index){
         return (*this->items)[index];

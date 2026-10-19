@@ -19,6 +19,7 @@ protected:
     }
 
 public:
+    // T& operator[] нет специально, чтоб нельзя было поменять эл
     using ArraySequence<T>::ArraySequence; //перетаскиваем конструкторы из ArraySequence только теперь для IMmutableArraySequence 
 
 };

@@ -51,6 +51,7 @@ public:
         data[index] = value;
     }
 
+    // меняет размер ровно до newSize, когда и насколько растить решает ArraySequence
     void Resize(int newSize){
         if (newSize < 0) throw std::invalid_argument("некорректные данные для изменения размера массива");
         if (newSize == size) return;       

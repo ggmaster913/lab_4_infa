@@ -21,7 +21,7 @@ struct MinMaxAvgAccumulator {
 
 template<typename T>
 MinMaxAvgAccumulator<T> CombineMinMxAvg(const MinMaxAvgAccumulator<T>& acc, const T& item) {
-    if (acc.count == 0) return {item, item, item, 1};
+    if (acc.count == 0) return {item, item, item, 1}; // первый эл сразу и min и max
 
     T newMin = (item < acc.min) ? item : acc.min;
     T newMax = (item > acc.max) ? item : acc.max;
@@ -41,7 +41,7 @@ MinMaxAvg<T> ComputerMinMaxAvg(const Sequence<T>* seq) {
     return {
         result.min,
         result.max,
-        static_cast<double>(result.sum/result.count)
+        static_cast<double>(result.sum/result.count) // count double, поэтому деление не целочисленное
     };
 
 }
