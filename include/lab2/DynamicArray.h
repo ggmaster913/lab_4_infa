@@ -7,16 +7,17 @@
 template <typename T>
 class DynamicArray : public ICollection<T> {
     T* data;
-    int size;
+    int size;     // сколько элементов реально есть
+    int capacity; // под сколько элементов выделена память, всегда >= size
 public:
-    explicit DynamicArray(int size) : size(size){ //запрет неявного преобразования типов. чтоб выдавало ошибку при, (PrintArray(6)) 
+    explicit DynamicArray(int size) : size(size), capacity(size){ //запрет неявного преобразования типов. чтоб выдавало ошибку при, (PrintArray(6))
         if (size < 0){
             throw std::invalid_argument("size не может быть меньше нуля");
         }
         data = new T[size]();
     }
 
-    DynamicArray(const T* items, int count) : size(count){
+    DynamicArray(const T* items, int count) : size(count), capacity(count){
         if (count < 0 || (count > 0 && items == nullptr)){
             throw std::invalid_argument("неправильные данные для копирования элементов массива");
         }
@@ -26,7 +27,7 @@ public:
         }
     }
 
-    DynamicArray(const DynamicArray<T>& other) : size(other.size){
+    DynamicArray(const DynamicArray<T>& other) : size(other.size), capacity(other.size){ // копируем только занятую часть
         data = new T[other.size];
         for (int i = 0; i < other.size; i++){
             data[i] = other.data[i];
@@ -46,21 +47,31 @@ public:
         return size;
     }
 
+    int GetCapacity() const {
+        return capacity;
+    }
+
     void Set(int index, const T& value){
         if (index < 0 || index >= size) throw std::out_of_range("неверный индекс");
         data[index] = value;
     }
 
-    // меняет размер ровно до newSize, когда и насколько растить решает ArraySequence
+    // меняет размер до newSize; память выделяется с запасом (вдвое), поэтому Append в среднем O(1)
     void Resize(int newSize){
         if (newSize < 0) throw std::invalid_argument("некорректные данные для изменения размера массива");
-        if (newSize == size) return;       
-        T* newData =  new T[newSize]();
-        int tCount = (newSize < size) ? newSize : size;
-        for (int i = 0; i < tCount; i++) newData[i] = data[i];
-        size = newSize;
+        if (newSize <= capacity) { // место есть, память не трогаем
+            for (int i = size; i < newSize; i++) data[i] = T(); // новые ячейки пустые, там мог остаться мусор после уменьшения
+            size = newSize;
+            return;
+        }
+        int newCapacity = capacity * 2;
+        if (newCapacity < newSize) newCapacity = newSize; // при capacity == 0 удвоение не поможет
+        T* newData = new T[newCapacity]();
+        for (int i = 0; i < size; i++) newData[i] = data[i];
         delete[] data;
         data = newData;
+        size = newSize;
+        capacity = newCapacity;
     }
 
     DynamicArray<T>& operator=(const DynamicArray<T>& other){
@@ -76,6 +87,7 @@ public:
 
         data = newData;
         size = other.size;
+        capacity = other.size;
 
         return *this;
     }
