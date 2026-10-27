@@ -1,3 +1,4 @@
+// --- вариант 2: «Алгебра ленивых списков и алгебра ординальных чисел» ---
 #include <iostream>
 #include <stdexcept>
 #include <random>
@@ -147,44 +148,57 @@ void MenuCreate() {
                  "4. Фибоначчи (бесконечная)   5. степени двойки (бесконечная)   6. готовая {7, 8, 9}   7. пустая\n";
     int choice = ReadNumber<int>("Выбор: ");
 
-    if (choice == 1 || choice == 2) {
+    switch (choice) {
+    case 1: {
         int count = ReadNumber<int>("Количество (0..100000): ");
         if (count < 0 || count > 100000) throw std::invalid_argument("количество должно быть от 0 до 100000");
-        if (choice == 2) {
-            long long low = ReadNumber<long long>("Минимум: ");
-            long long high = ReadNumber<long long>("Максимум: ");
-            if (low > high) throw std::invalid_argument("минимум больше максимума");
-            std::mt19937_64 random(std::random_device{}());
-            Store(RandomSequence(count, low, high, random));
-            return;
-        }
         DynamicArray<long long> items(count);
         for (int i = 0; i < count; i++) items.Set(i, ReadNumber<long long>("  элемент: "));
         Store(new LazySequence<long long>(new ArrayGenerator<long long>(items), Ordinal(count)));
-    } else if (choice >= 3 && choice <= 5) {
+        break;
+    }
+    case 2: {
+        int count = ReadNumber<int>("Количество (0..100000): ");
+        if (count < 0 || count > 100000) throw std::invalid_argument("количество должно быть от 0 до 100000");
+        long long low = ReadNumber<long long>("Минимум: ");
+        long long high = ReadNumber<long long>("Максимум: ");
+        if (low > high) throw std::invalid_argument("минимум больше максимума");
+        std::mt19937_64 random(std::random_device{}());
+        Store(RandomSequence(count, low, high, random));
+        break;
+    }
+    case 3: {
         long long start[2];
-        int startCount = 2;
-        long long (*rule)(const Sequence<long long>*) = ArithmeticRule;
-        if (choice == 3) {
-            start[0] = ReadNumber<long long>("Первый член: ");
-            start[1] = start[0] + ReadNumber<long long>("Шаг: ");
-        } else if (choice == 4) {
-            start[0] = ReadNumber<long long>("Первый член: ");
-            start[1] = ReadNumber<long long>("Второй член: ");
-            rule = FibonacciRule;
-        } else {
-            start[0] = ReadNumber<long long>("Первое число: ");
-            startCount = 1;
-            rule = DoubleRule;
-        }
-        MutableArraySequence<long long> initial(start, startCount);
-        Store(new LazySequence<long long>(rule, &initial));
-    } else if (choice == 6) {
+        start[0] = ReadNumber<long long>("Первый член: ");
+        start[1] = start[0] + ReadNumber<long long>("Шаг: ");
+        MutableArraySequence<long long> initial(start, 2);
+        Store(new LazySequence<long long>(ArithmeticRule, &initial));
+        break;
+    }
+    case 4: {
+        long long start[2];
+        start[0] = ReadNumber<long long>("Первый член: ");
+        start[1] = ReadNumber<long long>("Второй член: ");
+        MutableArraySequence<long long> initial(start, 2);
+        Store(new LazySequence<long long>(FibonacciRule, &initial));
+        break;
+    }
+    case 5: {
+        long long start[1];
+        start[0] = ReadNumber<long long>("Первое число: ");
+        MutableArraySequence<long long> initial(start, 1);
+        Store(new LazySequence<long long>(DoubleRule, &initial));
+        break;
+    }
+    case 6: {
         long long raw[] = {7, 8, 9};
         Store(new LazySequence<long long>(raw, 3));
-    } else if (choice == 7) {
+        break;
+    }
+    case 7:
         Store(new LazySequence<long long>());
-    } else {
+        break;
+    default:
         std::cout << "Нет такого пункта.\n";
     }
 }
@@ -206,44 +220,62 @@ void MenuOperations() {
                  "12. InsertAt последовательности из другого слота\n";
     int choice = ReadNumber<int>("Операция: ");
 
-    if (choice == 1) {
+    switch (choice) {
+    case 1: {
         int index = ReadNumber<int>("Индекс: ");
         long long value = seq->Get(index);
         std::cout << "Get(" << index << ") = " << value << "\n";
-    } else if (choice == 2) {
+        break;
+    }
+    case 2: {
         int a = ReadNumber<int>("Индекс ω·a + b, a = ");
         int b = ReadNumber<int>("b = ");
         Ordinal index(a, b);
         long long value = seq->Get(index);
         std::cout << "Get("; PrintOrdinal(index); std::cout << ") = " << value << "\n";
-    } else if (choice == 3) {
+        break;
+    }
+    case 3:
         std::cout << "GetFirst() = " << seq->GetFirst() << "\n";
         std::cout << "GetLast() = " << seq->GetLast() << "\n";
-    } else if (choice == 4) {
+        break;
+    case 4:
         std::cout << "Сумма = " << seq->Reduce(Sum, 0LL) << "\n";
-    } else if (choice == 5) {
+        break;
+    case 5:
         Store(seq->Append(ReadNumber<long long>("Элемент: ")));
-    } else if (choice == 6) {
+        break;
+    case 6:
         Store(seq->Prepend(ReadNumber<long long>("Элемент: ")));
-    } else if (choice == 7) {
+        break;
+    case 7: {
         long long item = ReadNumber<long long>("Элемент: ");
         int index = ReadNumber<int>("Индекс: ");
         Store(seq->InsertAt(item, index));
-    } else if (choice == 8) {
+        break;
+    }
+    case 8:
         Store(seq->Concat(ChooseSlot("Второй слот: ")));
-    } else if (choice == 9) {
+        break;
+    case 9: {
         int startIndex = ReadNumber<int>("Начальный индекс: ");
         int endIndex = ReadNumber<int>("Конечный индекс: ");
         Store(seq->GetSubSequence(startIndex, endIndex));
-    } else if (choice == 10) {
+        break;
+    }
+    case 10:
         Store(seq->Map(Square));
-    } else if (choice == 11) {
+        break;
+    case 11:
         Store(seq->Where(IsEven));
-    } else if (choice == 12) {
+        break;
+    case 12: {
         LazySequence<long long>* other = ChooseSlot("Какой слот вставить: ");
         int index = ReadNumber<int>("Индекс: ");
         Store(seq->InsertAt(other, index));
-    } else {
+        break;
+    }
+    default:
         std::cout << "Нет такого пункта.\n";
     }
 }
@@ -273,7 +305,8 @@ void MenuStreams() {
                  "3. записать слот в файл   4. прочитать файл в новый слот\n";
     int choice = ReadNumber<int>("Выбор: ");
 
-    if (choice == 1) {
+    switch (choice) {
+    case 1: {
         LazyReadStream<long long> stream(ChooseSlot("Слот: "));
         stream.Open();
         int count = ReadNumber<int>("Сколько прочитать: ");
@@ -288,7 +321,9 @@ void MenuStreams() {
             long long value = stream.Read();
             std::cout << "  после Seek(" << position << ") Read() = " << value << "\n";
         }
-    } else if (choice == 2) {
+        break;
+    }
+    case 2: {
         MutableListSequence<long long> target;
         SequenceWriteStream<long long> stream(&target);
         stream.Open();
@@ -300,7 +335,9 @@ void MenuStreams() {
         std::cout << "Список: [";
         for (int i = 0; i < target.GetLength(); i++) std::cout << (i > 0 ? ", " : "") << target.Get(i);
         std::cout << "]\n";
-    } else if (choice == 3) {
+        break;
+    }
+    case 3: {
         LazyReadStream<long long> reader(ChooseSlot("Слот: "));
         int count = ReadNumber<int>("Сколько эл записать: ");
         FileWriteStream<long long> writer(ReadWord("Имя файла: "), NumberToText);
@@ -309,7 +346,9 @@ void MenuStreams() {
         for (int i = 0; i < count && !reader.IsEndOfStream(); i++) writer.Write(reader.Read());
         writer.Close();
         std::cout << "Записано эл: " << writer.GetPosition() << "\n";
-    } else if (choice == 4) {
+        break;
+    }
+    case 4: {
         FileReadStream<long long> reader(ReadWord("Имя файла: "), TextToNumber);
         reader.Open();
         DynamicArray<long long> items(0);
@@ -321,7 +360,9 @@ void MenuStreams() {
         }
         items.Resize(count);
         Store(new LazySequence<long long>(new ArrayGenerator<long long>(items), Ordinal(count)));
-    } else {
+        break;
+    }
+    default:
         std::cout << "Нет такого пункта.\n";
     }
 }
@@ -438,18 +479,18 @@ int main() {
                      "8. Удалить последовательность\n"
                      "0. Выход\n";
         int choice = ReadNumber<int>("Выбор: ");
-        if (choice == 0) break;
+        if (choice == 0) break; // до switch, тк break в switch не выходит из while
         try {
             switch (choice) {
-                case 1: MenuCreate(); break;
-                case 2: MenuShow(); break;
-                case 3: MenuOperations(); break;
-                case 4: MenuLaws(); break;
-                case 5: MenuStreams(); break;
-                case 6: MenuAuto(); break;
-                case 7: MenuStress(); break;
-                case 8: MenuDelete(); break;
-                default: std::cout << "Нет такого пункта.\n";
+            case 1: MenuCreate(); break;
+            case 2: MenuShow(); break;
+            case 3: MenuOperations(); break;
+            case 4: MenuLaws(); break;
+            case 5: MenuStreams(); break;
+            case 6: MenuAuto(); break;
+            case 7: MenuStress(); break;
+            case 8: MenuDelete(); break;
+            default: std::cout << "Нет такого пункта.\n";
             }
         } catch (const std::exception& e) {
             std::cout << "Ошибка: " << e.what() << "\n";

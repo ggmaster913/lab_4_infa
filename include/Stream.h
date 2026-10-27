@@ -1,7 +1,5 @@
-#ifndef STREAM_H
-#define STREAM_H
+#pragma once
 
-#include <stdexcept>
 #include "Ordinal.h"
 #include "LazySequence.h"
 #include "lab2/Sequence.h"
@@ -12,82 +10,42 @@ class ReadOnlyStream {
     int position;
     bool isOpen;
 protected:
-    // реализуют наследники (как Instance в ArraySequence)
     virtual bool HasElementAt(int index) const = 0;
     virtual T ReadAt(int index) = 0;
-    virtual void OnOpen() {} // файлу тут надо открыться, остальным ничего
+    virtual void OnOpen() {} 
     virtual void OnClose() {}
 public:
-    ReadOnlyStream() : position(0), isOpen(false) {}
+    ReadOnlyStream();
     virtual ~ReadOnlyStream() = default;
 
-    void Open() {
-        OnOpen();
-        isOpen = true;
-        position = 0;
-    }
-    void Close() {
-        OnClose();
-        isOpen = false;
-    }
-    bool IsEndOfStream() const {
-        return !HasElementAt(position);
-    }
-    T Read() {
-        if (!isOpen) throw std::out_of_range("поток закрыт");
-        if (IsEndOfStream()) throw std::out_of_range("достигнут конец потока");
-        T item = ReadAt(position);
-        position++;
-        return item;
-    }
-    int GetPosition() const {
-        return position;
-    }
-    virtual bool IsCanSeek() const {
-        return true;
-    }
-    int Seek(int index) {
-        if (!isOpen) throw std::out_of_range("поток закрыт");
-        if (!IsCanSeek()) throw std::out_of_range("поток не умеет Seek");
-        if (index < 0 || !HasElementAt(index)) throw std::out_of_range("позиция недостижима");
-        position = index;
-        return position;
-    }
-    virtual bool IsCanGoBack() const {
-        return true;
-    }
+    void Open();
+    void Close();
+    bool IsEndOfStream() const;
+    T Read();
+    int GetPosition() const;
+    virtual bool IsCanSeek() const;
+    int Seek(int index);
+    virtual bool IsCanGoBack() const;
 };
 
 template<typename T>
 class SequenceReadStream : public ReadOnlyStream<T> {
     const Sequence<T>* source;
 protected:
-    bool HasElementAt(int index) const override {
-        return index < source->GetLength();
-    }
-    T ReadAt(int index) override {
-        return source->Get(index);
-    }
-public: 
-    explicit SequenceReadStream(const Sequence<T>* source) : source(source){
-        if (source == nullptr) throw std::invalid_argument("указатель не может быть nullptr");
-    }
+    bool HasElementAt(int index) const override;
+    T ReadAt(int index) override;
+public:
+    explicit SequenceReadStream(const Sequence<T>* source);
 };
 
-template<typename T> 
+template<typename T>
 class LazyReadStream : public ReadOnlyStream<T> {
     LazySequence<T>* source;
 protected:
-    bool HasElementAt(int index) const override {
-        return Ordinal(index) < source->GetLength(); // у бесконечной всегда true
-    }
-    T ReadAt(int index) override {
-        return source->Get(index);
-    }
+    bool HasElementAt(int index) const override;
+    T ReadAt(int index) override;
 public:
-    explicit LazyReadStream(LazySequence<T>* source) : source(source) {
-        if (source == nullptr) throw std::invalid_argument("указатель не может быть nullptr");
-    }
+    explicit LazyReadStream(LazySequence<T>* source);
 };
 
 template<typename T>
@@ -99,44 +57,22 @@ protected:
     virtual void OnOpen() {}
     virtual void OnClose() {}
 public:
-    WriteOnlyStream() : position(0), isOpen(false) {}
+    WriteOnlyStream();
     virtual ~WriteOnlyStream() = default;
 
-    void Open() {
-        OnOpen();
-        isOpen = true; // позицию не сбрасываем, записанное не пропало
-    }
-    void Close() {
-        OnClose();
-        isOpen = false;
-    }
-    int GetPosition() const {
-        return position;
-    }
-    int Write(const T& item) {
-        if (!isOpen) throw std::out_of_range("поток закрыт");
-        WriteItem(item);
-        position++; // после WriteItem, чтоб при ошибке не сдвинуть
-        return position;
-    }
+    void Open();
+    void Close();
+    int GetPosition() const;
+    int Write(const T& item);
 };
 
 template<typename T>
 class SequenceWriteStream : public WriteOnlyStream<T> {
     Sequence<T>* target;
 protected:
-    void WriteItem(const T& item) override {
-        // иммутабл вернул новый объект, target не наш - удаляем копию и ругаемся
-        Sequence<T>* result = target->Append(item);
-        if (result != target) {
-            delete result;
-            throw std::invalid_argument("поток записи работает только с изменяемой последовательностью");
-        }
-    }
+    void WriteItem(const T& item) override;
 public:
-    explicit SequenceWriteStream(Sequence<T>* target) : target(target) {
-        if (target == nullptr) throw std::invalid_argument("указатель не может быть nullptr");
-    }
+    explicit SequenceWriteStream(Sequence<T>* target);
 };
 
-#endif 
+#include "Stream.tpp"

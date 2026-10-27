@@ -1,22 +1,14 @@
-#ifndef OPTION_H
-#define OPTION_H
-
-#include <stdexcept>
+#pragma once
 
 template<typename T>
 class Option {
     bool hasValue;
     T value; // есть и у пустой, поэтому T нужен конструктор по умолч
 public:
-    Option() : hasValue(false), value() {}
-    explicit Option(const T& value) : hasValue(true), value(value){}
-    bool HasValue() const {
-        return hasValue;
-    }
-    const T& GetValue() const{
-        if (!hasValue) throw std::out_of_range("Элемента нет");
-        return value;
-    }
+    Option();
+    explicit Option(const T& value);
+    bool HasValue() const;
+    const T& GetValue() const;
 };
 
-#endif
+#include "Option.tpp"

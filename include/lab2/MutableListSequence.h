@@ -1,5 +1,4 @@
-#ifndef MUTABLELISTSEQUENCE_H
-#define MUTABLELISTSEQUENCE_H
+#pragma once
 
 #include "ListSequence.h"
 
@@ -19,12 +18,18 @@ protected:
     }
 
 public:
-    using ListSequence<T>::ListSequence; //перетаскиваем конструкторы из ArraySequence только теперь для MutableArraySequence 
-    using Sequence<T>::operator[]; // иначе T& operator[] спрятал бы const версию из Sequence
-    
+    // конструкторы не наследуются, поэтому передаём их в ListSequence явно
+    MutableListSequence() : ListSequence<T>() {}
+    MutableListSequence(const T* data, int count) : ListSequence<T>(data, count) {}
+    MutableListSequence(const LinkedList<T>& list) : ListSequence<T>(list) {}
+    MutableListSequence(const DynamicArray<T>& array) : ListSequence<T>(array) {}
+
+    // const версию пишем явно, иначе из за T& operator[] не перенеслось из Sequence тк есть уже оператор 
+    const T& operator[](int index) const {
+        return this->Get(index);
+    }
+
     T& operator[](int index){
         return (*this->items)[index];
     }
 };
-
-#endif

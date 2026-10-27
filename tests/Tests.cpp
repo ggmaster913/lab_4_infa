@@ -377,18 +377,18 @@ TEST(BitSequenceTest, SetBitAndBounds) {
 TEST(SequenceStatsTest, ComputeMinMaxAvgCalculations) {
     int raw1[] = {-10, -5, -20};
     MutableArraySequence<int> seq1(raw1, 3);
-    MinMaxAvg<int> stats1 = ComputerMinMaxAvg(&seq1);
+    MinMaxAvg<int> stats1 = ComputeMinMaxAvg(&seq1);
     EXPECT_EQ(stats1.min, -20);
     EXPECT_EQ(stats1.max, -5);
     EXPECT_DOUBLE_EQ(stats1.avg, -35.0 / 3.0);
 
     int raw2[] = {42};
     MutableArraySequence<int> seq2(raw2, 1);
-    MinMaxAvg<int> stats2 = ComputerMinMaxAvg(&seq2);
+    MinMaxAvg<int> stats2 = ComputeMinMaxAvg(&seq2);
     EXPECT_EQ(stats2.min, 42);
     EXPECT_EQ(stats2.max, 42);
     EXPECT_DOUBLE_EQ(stats2.avg, 42.0);
 
     MutableArraySequence<int> emptySeq;
-    EXPECT_THROW(ComputerMinMaxAvg(&emptySeq), std::invalid_argument);
+    EXPECT_THROW(ComputeMinMaxAvg(&emptySeq), std::invalid_argument);
 }

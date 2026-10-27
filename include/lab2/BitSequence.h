@@ -1,58 +1,35 @@
-#ifndef BITSEQUENCE_H
-#define BITSEQUENCE_H
+#pragma once
 
 #include "MutableArraySequence.h"
 #include "Bit.h"
-#include <stdexcept>
 
 class BitSequence : public MutableArraySequence<Bit> {
+protected:
+    // иначе GetSubSequence и Where вернули бы MutableArraySequence<Bit>, а не BitSequence
+    ArraySequence<Bit>* CreateInstance(const DynamicArray<Bit>& subArray) const override;
+    // иначе Copy через Clone из MutableArraySequence вернул бы MutableArraySequence<Bit>
+    ArraySequence<Bit>* Clone() const override;
+
 public:
-    using MutableArraySequence<Bit>::MutableArraySequence;
 
-    BitSequence(const bool* values, int count){
-        if (count < 0 || (count > 0 && values == nullptr)) throw std::invalid_argument("неправильные данные для битовой последовательности");
-        for (int i = 0; i < count; i++){
-            this->Append(Bit(values[i]));
-        }
-    }            
+    BitSequence();
+    BitSequence(const Bit* data, int count);
+    BitSequence(const DynamicArray<Bit>& array);
+    BitSequence(const LinkedList<Bit>& list);
 
-    BitSequence* And(const BitSequence& other) const {
-        if (this->GetLength() != other.GetLength()) throw std::invalid_argument("разная длина последовательностей");
-        BitSequence* result = new BitSequence();
-        for (int i = 0; i < other.GetLength(); i++) result->Append(this->Get(i) & other.Get(i));
-        return result;
-    }
-    BitSequence* Or(const BitSequence& other) const{
-        if (this->GetLength() != other.GetLength()) throw std::invalid_argument("разная длина последовательностей");
-        BitSequence* result = new BitSequence();
-        for (int i = 0; i < other.GetLength(); i++) result->Append(this->Get(i) | other.Get(i));
-        return result;
-    }
-    BitSequence* Xor(const BitSequence& other) const{
-        if (this->GetLength() != other.GetLength()) throw std::invalid_argument("разная длина последовательностей");
-        BitSequence* result = new BitSequence();
-        for (int i = 0; i < other.GetLength(); i++) result->Append(this->Get(i) ^ other.Get(i));
-        return result;
-    }
-    BitSequence* Not() const {
-        BitSequence* result = new BitSequence();
-        int len = this->GetLength();
-        for (int i = 0; i < len; i++) {
-            result->Append(~this->Get(i));
-        }
-        return result;
-    }
+    BitSequence(const bool* values, int count);
 
-    bool GetBit(int index) const {
-        return this->Get(index).GetValue();
-    }
-    void SetBit(int index, bool value) {
-        if (index < 0 || index >= this->GetLength()) {
-            throw std::out_of_range("неправильный индекс");
-        }
-        this->items->Set(index, Bit(value));
+    // 1100 And 1010 = 1000
+    BitSequence* And(const BitSequence& other) const;
+    // 1100 Or 1010 = 1110
+    BitSequence* Or(const BitSequence& other) const;
+    // 1100 Xor 1010 = 0110
+    BitSequence* Xor(const BitSequence& other) const;
+    // Not 1100 = 0011
+    BitSequence* Not() const;
 
-    }
+    // индекс проверит Get
+    bool GetBit(int index) const;
+    // индекс проверит Set
+    void SetBit(int index, bool value);
 };
-
-#endif 

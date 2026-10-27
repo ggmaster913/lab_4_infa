@@ -27,20 +27,21 @@ TEST(OrdinalTest, DefaultIsZero) {
 
 // создание через конструкторы с параметрами и получение омеги
 TEST(OrdinalTest, ConstructorsAndOmega) {
-    Ordinal finiteOrd(5);
-    EXPECT_EQ(finiteOrd.GetOmegaCount(), 0);
-    EXPECT_EQ(finiteOrd.GetFinitePart(), 5);
-    EXPECT_TRUE(finiteOrd.IsFinite());
+    Ordinal a(5);
+    Ordinal b(2, 3);
+    Ordinal c = Ordinal::Omega();
 
-    Ordinal transfiniteOrd(2, 3);
-    EXPECT_EQ(transfiniteOrd.GetOmegaCount(), 2);
-    EXPECT_EQ(transfiniteOrd.GetFinitePart(), 3);
-    EXPECT_FALSE(transfiniteOrd.IsFinite());
+    EXPECT_EQ(a.GetOmegaCount(), 0);
+    EXPECT_EQ(a.GetFinitePart(), 5);
+    EXPECT_TRUE(a.IsFinite());
 
-    Ordinal omega = Ordinal::Omega();
-    EXPECT_EQ(omega.GetOmegaCount(), 1);
-    EXPECT_EQ(omega.GetFinitePart(), 0);
-    EXPECT_FALSE(omega.IsFinite());
+    EXPECT_EQ(b.GetOmegaCount(), 2);
+    EXPECT_EQ(b.GetFinitePart(), 3);
+    EXPECT_FALSE(b.IsFinite());
+
+    EXPECT_EQ(c.GetOmegaCount(), 1);
+    EXPECT_EQ(c.GetFinitePart(), 0);
+    EXPECT_FALSE(c.IsFinite());
 }
 
 // передача отрицательных чисел в конструкторы
@@ -55,15 +56,13 @@ TEST(OrdinalTest, NegativeThrows) {
 TEST(OrdinalTest, AdditionFinite) {
     Ordinal a(2);
     Ordinal b(3);
-    Ordinal sumFinite = a + b;
-    EXPECT_TRUE(sumFinite == Ordinal(5));
+    Ordinal sum = a + b;
+    EXPECT_TRUE(sum == Ordinal(5));
 
-    Ordinal omega = Ordinal::Omega();
     Ordinal tail(5);
-    Ordinal omegaPlusFive = omega + tail;
-    EXPECT_EQ(omegaPlusFive.GetOmegaCount(), 1);
-    EXPECT_EQ(omegaPlusFive.GetFinitePart(), 5);
-    EXPECT_TRUE(omegaPlusFive == Ordinal(1, 5));
+    Ordinal sum2 = Ordinal::Omega() + tail;
+    EXPECT_EQ(sum2.GetOmegaCount(), 1);
+    EXPECT_EQ(sum2.GetFinitePart(), 5);
 }
 
 // поглощение левого хвоста при сложении с омегой справа
@@ -149,14 +148,12 @@ TEST(LazySequenceTest, EmptySequence) {
 
 // создание из сырого массива и проверка чтения по индексам
 TEST(LazySequenceTest, FromArray) {
-    int raw[] = {7, 8, 9};
+    int raw[]{7, 8, 9};
     LazySequence<int> seq(raw, 3);
-
-    EXPECT_TRUE(seq.GetLength() == Ordinal(3));
+    EXPECT_EQ(seq.GetLength(), Ordinal(3));
     EXPECT_EQ(seq.Get(0), 7);
     EXPECT_EQ(seq.Get(1), 8);
     EXPECT_EQ(seq.Get(2), 9);
-
     EXPECT_THROW(seq.Get(3), std::out_of_range);
     EXPECT_THROW(seq.Get(-1), std::out_of_range);
 }
@@ -192,15 +189,12 @@ TEST(LazySequenceTest, RuleFibonacci) {
 
 // ленивое вычисление и работа кэша мемоизации
 TEST(LazySequenceTest, Memoization) {
-    int start[] = {0, 1};
+    int start[]{0, 1};
     MutableArraySequence<int> initial(start, 2);
-    LazySequence<int> naturals(ArithmeticRule, &initial);
-
+    LazySequence<int> naturals(ArithmeticRule, &initial); 
     EXPECT_EQ(naturals.GetMaterializedCount(), 0);
-
     EXPECT_EQ(naturals.Get(5), 5);
     EXPECT_EQ(naturals.GetMaterializedCount(), 6);
-
     EXPECT_EQ(naturals.Get(2), 2);
     EXPECT_EQ(naturals.GetMaterializedCount(), 6);
 }
@@ -278,18 +272,15 @@ TEST(LazySequenceTest, GetFirstGetLast) {
 
 // добавление элемента в конец бесконечной последовательности дает омега плюс один
 TEST(LazySequenceTest, AppendToInfiniteGivesOmegaPlusOne) {
-    int start[] = {0, 1};
-    MutableArraySequence<int> initial(start, 2);
-    LazySequence<int> naturals(ArithmeticRule, &initial);
-
+    int start[]{0, 1};
+    MutableArraySequence<int> arr(start, 2);
+    LazySequence<int> naturals(ArithmeticRule, &arr);
     LazySequence<int>* extended = naturals.Append(42);
-
     EXPECT_TRUE(extended->GetLength() == Ordinal::Omega() + Ordinal(1));
     EXPECT_FALSE(extended->GetLength().IsFinite());
     EXPECT_EQ(extended->Get(5), 5);
     EXPECT_THROW(extended->Get(Ordinal::Omega() + Ordinal(1)), std::out_of_range);
     EXPECT_THROW(extended->GetLast(), std::out_of_range);
-
     delete extended;
 }
 

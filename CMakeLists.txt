@@ -7,6 +7,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # путь к заголовочным файлам
 include_directories(include)
+include_directories(include/lab2) # src/lab2/*.cpp подключают свои заголовки без lab2/
 
 # GTest
 include(FetchContent)
@@ -24,10 +25,16 @@ add_executable(tests
     tests/LazySequenceTests.cpp
     tests/StreamTests.cpp
     tests/StressTests.cpp
+    src/Ordinal.cpp
+    src/lab2/Bit.cpp
+    src/lab2/BitSequence.cpp
 )
 target_link_libraries(tests gtest_main)
 
 # исполняемый файл для UI
 add_executable(ui
     ui/ConsoleUI.cpp
+    src/Ordinal.cpp
+    src/lab2/Bit.cpp
+    src/lab2/BitSequence.cpp
 )

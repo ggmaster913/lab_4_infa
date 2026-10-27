@@ -205,7 +205,7 @@ TEST(StreamTest, FileWriteThenRead) {
     for (int i = 1; i <= 5; ++i) {
         EXPECT_EQ(writer.Write(i * 10), i);
     }
-    writer.Close();
+    writer.Close(); // без Close данные могут остаться в буфере, а не в файле
 
     FileReadStream<int> reader(fileName, ParseInt);
     EXPECT_FALSE(reader.IsCanSeek());

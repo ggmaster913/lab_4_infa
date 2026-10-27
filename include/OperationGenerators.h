@@ -1,85 +1,44 @@
-#ifndef OPERATIONGENERATORS_H
-#define OPERATIONGENERATORS_H
+#pragma once
 
-#include <stdexcept>
 #include "Generator.h"
 
 template<typename T>
 class ConcatGenerator : public IGenerator<T> {
     IGenerator<T>* first;
     IGenerator<T>* second;
-public: 
-    ConcatGenerator(IGenerator<T>* first, IGenerator<T>* second) : first(first), second(second) {
-        // генераторы уже наши, удаляем чтоб не утекли
-        if (first == nullptr || second == nullptr) {
-            delete this->first;
-            delete this->second;
-            throw std::invalid_argument("часть конкатенации не может быть nullptr");
-        }
-    }
-    ~ConcatGenerator() {
-        delete first;
-        delete second;
-    }
+public:
+    ConcatGenerator(IGenerator<T>* first, IGenerator<T>* second);
+    ~ConcatGenerator();
 
-    // без этого копирование по умолч скопировало бы указатели, 
+    // без этого копирование по умолч скопировало бы указатели,
     // было бы двойное удаление. генераторы копируются через CloneFromStart()
     ConcatGenerator(const ConcatGenerator<T>& other) = delete;
     ConcatGenerator<T>& operator=(const ConcatGenerator<T>& other) = delete;
 
-    // если first бесконечный, до second очередь не дойдет 
+    // если first бесконечный, до second очередь не дойдет
     // так и должно быть (по методичке)
-    bool HasNext() const override {
-        return first->HasNext() || second->HasNext();
-    }
-    T GetNext() override {
-        if (first->HasNext()) return first->GetNext();
-        return second->GetNext();
-    }
-    IGenerator<T>* CloneFromStart() const override {
-        return new ConcatGenerator<T>(first->CloneFromStart(), second->CloneFromStart());
-    }
+    bool HasNext() const override;
+    T GetNext() override; // <-
+    IGenerator<T>* CloneFromStart() const override;
 };
 
-template<typename T>
+template<typename T> // как и тэйк генератор для гетсабсиквенс
 class SkipGenerator : public IGenerator<T> {
     IGenerator<T>* source;
     int skipCount;
     // mutable тк пропуск делается в const HasNext()
     mutable bool skipped;
     // пропуск при первом обращении, чтоб было лениво
-    void SkipIfNeeded() const {
-        if (skipped == true) return;
-        for (int i = 0; i < skipCount; i++) {
-            if (source->HasNext()) source->GetNext();
-        }
-        skipped = true;
-    }
+    void SkipIfNeeded() const;
 public:
-    SkipGenerator(IGenerator <T>* source, int skipCount) : source(source), skipCount(skipCount), skipped(false) {
-        if (source == nullptr) throw std::invalid_argument("указатель не может быть пустым");
-        if (skipCount < 0) {
-            delete source;
-            throw std::invalid_argument("skipCount не может быть меньше нуля");
-        }
-    }
-    ~SkipGenerator() {
-        delete source;
-    }
+    SkipGenerator(IGenerator<T>* source, int skipCount);
+    ~SkipGenerator();
     SkipGenerator(const SkipGenerator<T>& other) = delete;
     SkipGenerator<T>& operator=(const SkipGenerator<T>& other) = delete;
 
-    bool HasNext() const override{
-        SkipIfNeeded();
-        return source->HasNext();
-    }
-    T GetNext() override{
-        SkipIfNeeded();
-        return source->GetNext();
-    }
-    IGenerator<T>* CloneFromStart() const override {
-        return new SkipGenerator<T>(source->CloneFromStart(), skipCount);
-    }
+    bool HasNext() const override;
+    T GetNext() override;
+    IGenerator<T>* CloneFromStart() const override;
 };
 
 template<typename T>
@@ -88,106 +47,48 @@ class TakeGenerator : public IGenerator<T> {
     int takeCount;
     int given;
 public:
-    TakeGenerator(IGenerator<T>* source, int takeCount) : source(source), takeCount(takeCount), given(0) {
-        if (source == nullptr) throw std::invalid_argument("указатель не может быть равен нулю");
-        if (takeCount < 0) {
-            delete source;
-            throw std::invalid_argument("takeCount не может быть меньше нуля");
-        }
-    }
-    ~TakeGenerator() {
-        delete source;
-    }
+    TakeGenerator(IGenerator<T>* source, int takeCount);
+    ~TakeGenerator();
     TakeGenerator(const TakeGenerator<T>& other) = delete;
     TakeGenerator<T>& operator=(const TakeGenerator<T>& other) = delete;
 
-    bool HasNext() const override {
-        return given < takeCount && source->HasNext();
-    }
-    T GetNext() override {
-        if (!this->HasNext()) throw std::out_of_range("нет следующего элемента");
-        given++;
-        return source->GetNext();
-    }
-    IGenerator<T>* CloneFromStart() const override {
-        return new TakeGenerator<T>(source->CloneFromStart(), takeCount);
-    }
+    bool HasNext() const override;
+    T GetNext() override;
+    IGenerator<T>* CloneFromStart() const override;
 };
 
 template<typename T, typename T2>
 class MapGenerator : public IGenerator<T2> {
     IGenerator<T>* source;
     T2 (*function)(const T&);
-public: 
-    MapGenerator(IGenerator<T>* source, T2 (*function)(const T&)) : source(source), function(function) {
-        if (source == nullptr) throw std::invalid_argument("указатель не может быть равен nullptr"); 
-        if (function == nullptr) {
-            delete source;
-            throw std::invalid_argument("указатель на функцию не может быть nullptr");  
-        }
-    }    
-    ~MapGenerator() {
-        delete source;
-    }
-    MapGenerator(const MapGenerator<T , T2>& other) = delete;
+public:
+    MapGenerator(IGenerator<T>* source, T2 (*function)(const T&));
+    ~MapGenerator();
+    MapGenerator(const MapGenerator<T, T2>& other) = delete;
     MapGenerator<T, T2>& operator=(const MapGenerator<T, T2>& other) = delete;
 
-    bool HasNext() const override {
-        return source->HasNext();
-    }
-    T2 GetNext() override {
-        return function(source->GetNext());
-    }
-    IGenerator<T2>* CloneFromStart() const override {
-        return new MapGenerator<T, T2>(source->CloneFromStart(), function);
-    }
+    bool HasNext() const override;
+    T2 GetNext() override;
+    IGenerator<T2>* CloneFromStart() const override;
 };
 
-// если источник бесконечный, а подходящих больше нет(например число меньшие 5), то FindNext() не закончится никогда. методичка это допускает 
+// если источник бесконечный, а подходящих больше нет(например число меньшие 5), то FindNext() не закончится никогда. методичка это допускает
 template<typename T>
 class WhereGenerator : public IGenerator<T> {
     IGenerator<T>* source;
     bool (*predicate)(const T&);
     // найденный, но ещё не отданный эл (mutable тк ищем в const HasNext())
     mutable Option<T> buffer;
-    void FindNext() const {
-        if (buffer.HasValue()) return;
-        while (source->HasNext()) {
-            T item = source->GetNext();
-            if (predicate(item)) {
-                buffer = Option<T>(item);
-                return;
-            }
-        }
-    }
+    void FindNext() const;
 public:
-    WhereGenerator(IGenerator<T>* source, bool (*predicate)(const T&)) : source(source), predicate(predicate), buffer() {
-        if (source == nullptr) throw std::invalid_argument("указатель не может быть равен nullptr"); 
-        if (predicate == nullptr) {
-            delete source;
-            throw std::invalid_argument("указатель на функцию не может быть nullptr");  
-        }
-    }
-    ~WhereGenerator() {
-        delete source;
-    }
+    WhereGenerator(IGenerator<T>* source, bool (*predicate)(const T&));
+    ~WhereGenerator();
     WhereGenerator(const WhereGenerator<T>& other) = delete;
     WhereGenerator<T>& operator=(const WhereGenerator<T>& other) = delete;
 
-    bool HasNext() const override {
-        FindNext();
-        return buffer.HasValue();
-    }
-    T GetNext() override {
-        FindNext();
-        if (!buffer.HasValue()) throw std::out_of_range("элементы кончились");
-        T result = buffer.GetValue();
-        buffer = Option<T>(); // чтоб в след раз искать дальше
-        return result;
-    }
-    IGenerator<T>* CloneFromStart() const override {
-        return new WhereGenerator<T>(source->CloneFromStart(), predicate);
-    }
+    bool HasNext() const override;
+    T GetNext() override;
+    IGenerator<T>* CloneFromStart() const override;
 };
 
-#endif
+#include "OperationGenerators.tpp"

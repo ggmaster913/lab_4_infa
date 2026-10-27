@@ -1,41 +1,28 @@
-#ifndef BIT_H
-#define BIT_H
+#pragma once
 
 class Bit {
     bool value;
 public:
-    Bit() : value(0) {}
-    Bit(bool value) : value(value) {}
-    explicit Bit(int value) : value(value != 0) {}
+    Bit();
+    // защита от неявных преобразований (типа s.Append(7);  может молча перевести в бит)
+    explicit Bit(bool value);
+    explicit Bit(int value);
 
-    bool GetValue() const {
-        return value;
-    }
+    bool GetValue() const;
+    void SetValue(bool value);
 
-    void SetValue(bool value) {
-        this->value = value;
-    }
+    // И: 1 только если оба 1
+    Bit operator&(const Bit& other) const;
 
-    Bit operator&(const Bit& other) const {
-        return Bit(this->value && other.value);
-    }
+    // ИЛИ: 1 если хоть один 1
+    Bit operator|(const Bit& other) const;
 
-    Bit operator|(const Bit& other) const {
-        return Bit(this->value || other.value);
-    }
+    // исключающее ИЛИ: 1 если биты разные
+    Bit operator^(const Bit& other) const;
 
-    Bit operator^(const Bit& other) const {
-        return Bit(this->value != other.value);
-    }
+    // НЕ: переворачивает бит
+    Bit operator~() const;
 
-    Bit operator~() const {
-        return Bit(!this->value);
-    }
-
-    bool operator==(const Bit& other) const {
-        return this->value == other.value;
-    }   
-
+    // равны ли  два бита
+    bool operator==(const Bit& other) const;
 };
-
-#endif
