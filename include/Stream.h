@@ -28,7 +28,7 @@ public:
     virtual bool IsCanGoBack() const;
 };
 
-template<typename T>
+template<typename T> // читает из сиквенс 
 class SequenceReadStream : public ReadOnlyStream<T> {
     const Sequence<T>* source;
 protected:
@@ -38,7 +38,7 @@ public:
     explicit SequenceReadStream(const Sequence<T>* source);
 };
 
-template<typename T>
+template<typename T> // читает из lazysequence
 class LazyReadStream : public ReadOnlyStream<T> {
     LazySequence<T>* source;
 protected:
@@ -48,7 +48,7 @@ public:
     explicit LazyReadStream(LazySequence<T>* source);
 };
 
-template<typename T>
+template<typename T> 
 class WriteOnlyStream {
     int position;
     bool isOpen;
@@ -66,7 +66,7 @@ public:
     int Write(const T& item);
 };
 
-template<typename T>
+template<typename T> // записывает в сиквенс 
 class SequenceWriteStream : public WriteOnlyStream<T> {
     Sequence<T>* target;
 protected:
