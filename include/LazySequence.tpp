@@ -141,7 +141,7 @@ LazySequence<T>* LazySequence<T>::InsertAt(const LazySequence<T>* other, int ind
     return new LazySequence<T>(tempGen, Ordinal(index) + other->length + rest);
 }
 
-// два template: первый от класса LazySequence<T>, второй от самого метода (T2)
+
 template<typename T>
 template<typename T2>
 LazySequence<T2>* LazySequence<T>::Map(T2 (*function)(const T&)) const {
